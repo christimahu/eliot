@@ -79,7 +79,7 @@ defmodule Eliot.MixProject do
       check: [
         "format --check-formatted",
         "credo --strict",
-        "test --cover --force"
+        "test --cover"
       ],
 
       # Watches file system for changes and re-runs tests automatically.

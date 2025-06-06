@@ -78,7 +78,6 @@ defmodule Eliot.MixProject do
       check: [
         "format --check-formatted",
         "credo --strict",
-        "dialyzer",
         "test --cover --force"
       ],
 

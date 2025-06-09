@@ -1,43 +1,308 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Continuous Integration
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+env:
+  MIX_ENV: test
+  ELIXIR_ASSERT_TIMEOUT: 10000
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
+  quality-checks:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: '1.14'
+            otp: '25'
+          - elixir: '1.15'
+            otp: '25'
+          - elixir: '1.15'
+            otp: '26'
+          - elixir: '1.16'
+            otp: '26'
+            coverage: true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Check unused dependencies
+      run: mix deps.unlock --check-unused
+
+    - name: Compile (warnings as errors)
+      run: mix compile --warnings-as-errors --force
+
+    - name: Check code formatting
+      run: mix format --check-formatted
+
+    - name: Run Credo (static analysis)
+      run: mix credo --strict
+
+    - name: Run tests
+      run: mix test --cover --warnings-as-errors
+
+    - name: Generate coverage report
+      if: matrix.coverage
+      run: mix coveralls.lcov
+
+    - name: Upload coverage to Codecov
+      if: matrix.coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./cover/lcov.info
+        fail_ci_if_error: false
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-security-${{ runner.os }}-${{ hashFiles('**/mix.lock') }}
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Security audit
+      run: mix deps.audit
+
+  build-release:
+    name: Build Production Release
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-prod-${{ runner.os }}-${{ hashFiles('**/mix.lock') }}
+
+    - name: Install dependencies (prod only)
+      run: MIX_ENV=prod mix deps.get --only prod
+
+    - name: Compile for production
+      run: MIX_ENV=prod mix compile --warnings-as-errors
+
+    - name: Build release
+      run: MIX_ENV=prod mix release
+
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: eliot-release-${{ github.sha }}
+        path: _build/prod/rel/eliot/
+        retention-days: 7
+
+  integration-tests:
+    name: Integration Testing
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-integration-${{ runner.os }}-${{ hashFiles('**/mix.lock') }}
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Start MQTT broker with config
+      run: |
+        # Create mosquitto config that allows anonymous connections
+        mkdir -p /tmp/mosquitto
+        echo "allow_anonymous true" > /tmp/mosquitto/mosquitto.conf
+        echo "listener 1883" >> /tmp/mosquitto/mosquitto.conf
+        
+        # Start mosquitto in background
+        docker run -d \
+          --name mosquitto-test \
+          -p 1883:1883 \
+          -v /tmp/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf \
+          eclipse-mosquitto:2.0
+
+    - name: Wait for MQTT broker
+      run: |
+        timeout 30s bash -c 'until nc -z localhost 1883; do sleep 1; done'
+
+    - name: Run integration tests
+      run: mix test --only integration --warnings-as-errors
+      env:
+        MQTT_BROKER_HOST: localhost
+        MQTT_BROKER_PORT: 1883
+
+    - name: Stop MQTT broker
+      if: always()
+      run: docker stop mosquitto-test && docker rm mosquitto-test
+
+  documentation:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.16'
+        otp-version: '26'
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-docs-${{ runner.os }}-${{ hashFiles('**/mix.lock') }}
+
+    - name: Install dependencies
+      run: mix deps.get
+      
+    - name: Generate documentation
+      run: MIX_ENV=dev mix docs
+      
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./web
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-release, integration-tests]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    environment:
+      name: staging
+      url: https://staging.bonsoireliot.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download release artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: eliot-release-${{ github.sha }}
+        path: ./release
+
+    - name: Verify release
+      run: |
+        ls -la ./release
+        echo "✅ Release artifact verified"
+        
+    - name: Deploy to staging (mock)
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        echo "Release version: ${{ github.sha }}"
+        echo "✅ Staging deployment completed"
+
+  notify-status:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [quality-checks, security-audit, build-release, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Notify success
+      if: ${{ needs.quality-checks.result == 'success' && needs.security-audit.result == 'success' && needs.build-release.result == 'success' && needs.integration-tests.result == 'success' }}
+      run: |
+        echo "✅ All CI checks passed successfully!"
+        echo "- Code quality: ✅"
+        echo "- Security audit: ✅" 
+        echo "- Production build: ✅"
+        echo "- Integration tests: ✅"
+        
+    - name: Notify failure
+      if: ${{ needs.quality-checks.result == 'failure' || needs.security-audit.result == 'failure' || needs.build-release.result == 'failure' || needs.integration-tests.result == 'failure' }}
+      run: |
+        echo "❌ CI checks failed!"
+        echo "- Code quality: ${{ needs.quality-checks.result }}"
+        echo "- Security audit: ${{ needs.security-audit.result }}"
+        echo "- Production build: ${{ needs.build-release.result }}"
+        echo "- Integration tests: ${{ needs.integration-tests.result }}"
+        exit 1

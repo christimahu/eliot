@@ -1,0 +1,16 @@
+{
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true,
+    "output_dir": "cover/",
+    "template_path": "cover/coverage.html.eex"
+  },
+  "terminal_options": {
+    "file_column_width": 40
+  },
+  "skip_files": [
+    "test/",
+    "deps/",
+    "_build/"
+  ],
+  "minimum_coverage": 90
+}

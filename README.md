@@ -11,20 +11,20 @@ Eliot is a production-ready IoT data ingestion system built with Elixir/OTP, des
 - **Structured Logging** - Every event tracked, every anomaly detected
 - **Circuit Breaker Patterns** - Automatic recovery from network failures
 - **Environment-Specific Configuration** - Seamless deployment from development to production
-- **Comprehensive Test Suite** - 27 tests covering error scenarios and edge cases
-- **Zero Code Quality Issues** - Clean, idiomatic Elixir following industry best practices
+- **Comprehensive Test Suite** - High coverage with integration tests covering error scenarios and edge cases
+- **Clean Code Quality** - Idiomatic Elixir following industry best practices
 
 ## 🏗️ Architecture
 
-Eliot follows the **"let it crash"** philosophy - embrace failure, isolate it, and recover gracefully. The system is built around an umbrella application with isolated supervision trees for maximum resilience.
+Eliot follows the **"let it crash"** philosophy - embrace failure, isolate it, and recover gracefully. The system is built around an OTP application with isolated supervision trees for maximum resilience.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Eliot Supervisor                         │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │ MQTT Connection │  │ Message Processor│  │ Health       │ │
-│  │ Supervisors     │  │ Workers          │  │ Monitor      │ │
+│  │ Error Handler   │  │ Message Parser  │  │ Logger       │ │
+│  │ (Retry Logic)   │  │ (JSON Processing)│  │ (Telemetry)  │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -46,7 +46,7 @@ The architecture demonstrates understanding of:
 
 ### Installation
 
-```
+```bash
 # Clone the repository
 git clone https://github.com/christimahu/eliot.git
 cd eliot
@@ -63,11 +63,11 @@ mix run --no-halt
 
 ### Development
 
-```
+```bash
 # Run with interactive shell
 iex -S mix
 
-# Run linting
+# Run linting (if configured)
 mix credo
 
 # Format code
@@ -89,9 +89,9 @@ MIX_ENV=prod mix release
 
 Eliot supports environment-specific configuration:
 
-```
+```elixir
 # config/prod.exs
-config :data_ingestion,
+config :eliot,
   mqtt: [
     broker_host: System.get_env("MQTT_BROKER_HOST"),
     broker_port: 8883,
@@ -111,7 +111,7 @@ config :data_ingestion,
 
 All device messages follow a standardized JSON schema:
 
-```
+```json
 {
   "device_id": "robot_001",
   "timestamp": "2025-06-05T14:30:00Z", 
@@ -133,7 +133,7 @@ Eliot implements sophisticated error handling patterns:
 - **Dead Letter Queues** - Preserve unprocessable messages for analysis
 - **Graceful Degradation** - Continue operating with reduced functionality
 
-```
+```elixir
 # Example: Device connection timeout handling
 {:retry, %{device_id: "robot_001", backoff_ms: 2000}}
 
@@ -145,7 +145,7 @@ Eliot implements sophisticated error handling patterns:
 
 Every operation generates structured logs for production monitoring:
 
-```
+```elixir
 # Device connection events
 Eliot.Logger.log_device_event("robot_001", :connected)
 
@@ -158,7 +158,7 @@ Eliot.Logger.log_error("Authentication failure", %{device_id: "unknown", reason:
 
 ## 🧪 Testing
 
-```
+```bash
 # Run all tests
 mix test
 
@@ -166,7 +166,10 @@ mix test
 mix test --cover
 
 # Run integration tests only
-mix test --only integration
+mix test test/eliot/integration/
+
+# Run tests excluding integration tests
+mix test --exclude integration
 ```
 
 The test suite covers:
@@ -175,11 +178,13 @@ The test suite covers:
 - **Error Scenarios** - Network failures and malformed data
 - **Configuration Validation** - Environment-specific settings
 
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
 ## 🏭 Production Deployment
 
 ### Building a Release
 
-```
+```bash
 # Create production release
 MIX_ENV=prod mix release
 
@@ -189,7 +194,7 @@ _build/prod/rel/eliot/bin/eliot start
 
 ### Docker Deployment
 
-```
+```dockerfile
 FROM elixir:1.14-alpine
 WORKDIR /app
 COPY mix.exs mix.lock ./
@@ -201,33 +206,33 @@ CMD ["_build/prod/rel/eliot/bin/eliot", "start"]
 
 ## 🤝 Contributing
 
-We welcome contributions! Please read our contributing guidelines:
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md):
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/new-capability`
 3. Write tests for your changes
 4. Ensure all tests pass: `mix test`
-5. Run linting: `mix credo`
+5. Run linting: `mix credo` (if configured)
 6. Submit a pull request
 
 ## 📋 Requirements Checklist
 
 - [x] Production-ready error handling
-- [x] Comprehensive test coverage (27 tests)
+- [x] Comprehensive test coverage with integration tests
 - [x] Environment-specific configuration
 - [x] Structured logging for observability
 - [x] Circuit breaker patterns
 - [x] MQTT protocol support
-- [x] Clean code quality (0 Credo issues)
+- [x] Clean code quality
 - [x] Documentation with examples
 - [x] Graceful shutdown handling
 
 ## 🏆 Quality Metrics
 
 ```
-Tests:     27 passing (2 doctests + 25 tests)
-Coverage:  100% of critical paths
-Credo:     0 issues found
+Tests:     Comprehensive unit and integration test coverage
+Coverage:  High coverage of critical paths
+Credo:     Clean code following Elixir best practices
 Format:    All code properly formatted
 Docs:      Comprehensive with examples
 ```
@@ -240,9 +245,15 @@ Docs:      Comprehensive with examples
 - **Phase 4**: Machine learning anomaly detection
 - **Phase 5**: Multi-region deployment and edge computing
 
+## 📚 Documentation
+
+- **Testing**: See [TESTING.md](TESTING.md) for detailed testing information
+- **Changes**: See [CHANGELOG.md](CHANGELOG.md) for version history
+- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
+
 ## 📄 License
 
-Copyright 2025. Licensed under the [GNU General Public License v3.0](LICENSE).
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ---
 

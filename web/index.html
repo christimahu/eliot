@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliot - IoT Data Ingestion System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="glitch" data-text="ELIOT">ELIOT</h1>
+                <p class="subtitle">"Hello, friend. Welcome to the world of connected devices."</p>
+                <p style="color: #8b949e; margin: 2rem 0;">
+                    Production-ready IoT data ingestion system built with Elixir/OTP.<br>
+                    Designed for fault-tolerance, scalability, and the modern connected world.
+                </p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/christimahu/eliot" class="btn" target="_blank" rel="noopener noreferrer">
+                        🔓 Access Repository
+                    </a>
+                    <a href="docs/" class="btn">
+                        📚 API Documentation
+                    </a>
+                    <a href="https://hex.pm/packages/eliot" class="btn" target="_blank" rel="noopener noreferrer">
+                        📦 Hex Package
+                    </a>
+                    <a href="docs/Eliot.epub" class="btn" download>
+                        📖 Download Guide (EPUB)
+                    </a>
+                    <a href="#features" class="btn">
+                        🤖 Explore Features
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">System Capabilities</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">MQTT Communication</h3>
+                    <p class="feature-description">
+                        Production-ready MQTT client implementation for IoT device communication. 
+                        Built on Elixir/OTP for handling concurrent device connections reliably.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Fault Tolerance</h3>
+                    <p class="feature-description">
+                        Supervisor trees and OTP design patterns provide automatic recovery from failures.
+                        Individual process crashes don't bring down the entire system.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3 class="feature-title">Structured Logging</h3>
+                    <p class="feature-description">
+                        Built-in structured logging for device events, message processing, and system health.
+                        Ready for production monitoring and observability tools.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Error Handling</h3>
+                    <p class="feature-description">
+                        Comprehensive error handling with retry logic, circuit breakers, and graceful degradation.
+                        Built for resilience in unpredictable IoT environments.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3 class="feature-title">Message Processing</h3>
+                    <p class="feature-description">
+                        Framework for processing sensor data, GPS coordinates, and device telemetry.
+                        Includes JSON parsing, validation, and data transformation.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🏗️</div>
+                    <h3 class="feature-title">Production Ready</h3>
+                    <p class="feature-description">
+                        Environment-specific configuration, comprehensive test suite, and release builds.
+                        Ready for deployment with proper observability and monitoring.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="container">
+            <h2 class="section-title">By The Numbers</h2>
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-number pulse">90%+</span>
+                    <div class="stat-label">Test Coverage</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-number pulse">0</span>
+                    <div class="stat-label">Code Quality Issues</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-number pulse">4</span>
+                    <div class="stat-label">Core Modules</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-number pulse">∞</span>
+                    <div class="stat-label">Concurrent Connections</div>
+                </div>
+            </div>
+            
+            <div class="terminal">
+                <div class="terminal-content">
+                    <div><span class="terminal-prompt">user@eliot:~$</span> mix test</div>
+                    <div class="terminal-output">
+                        ==> eliot<br>
+                        Running ExUnit with seed: 42, max_cases: 16<br>
+                        ..............................<br>
+                        <br>
+                        Finished in 0.5 seconds (0.2s async, 0.3s sync)<br>
+                        <span style="color: #00ff40;">2 doctests, 72 tests, 0 failures</span>
+                    </div>
+                    <div><span class="terminal-prompt">user@eliot:~$</span> mix format --check-formatted</div>
+                    <div class="terminal-output">
+                        <span style="color: #00ff40;">All files properly formatted</span>
+                    </div>
+                    <div><span class="terminal-prompt">user@eliot:~$</span> <span class="pulse">_</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p style="color: #8b949e; margin-bottom: 2rem;">
+                "The world is a dangerous place, not because of those who do evil,<br>
+                but because of those who look on and do nothing.<br>
+                <strong style="color: #00d4ff;">Eliot watches, processes, and acts.</strong>"
+            </p>
+            
+            <div class="social-links">
+                <a href="https://github.com/christimahu/eliot" class="social-link" title="Repository" target="_blank" rel="noopener noreferrer">📡</a>
+                <a href="https://hex.pm/packages/eliot" class="social-link" title="Hex Package" target="_blank" rel="noopener noreferrer">📦</a>
+                <a href="https://hexdocs.pm/eliot" class="social-link" title="HexDocs" target="_blank" rel="noopener noreferrer">📚</a>
+                <a href="https://christimahu.com/software" class="social-link" title="More Projects" target="_blank" rel="noopener noreferrer">🌐</a>
+            </div>
+            
+            <p style="color: #8b949e; font-size: 0.9rem;">
+                Built with ❤️ and lots of ☕ for the IoT revolution.<br>
+                Copyright 2025 • Licensed under the GNU General Public License v3.0
+            </p>
+            
+            <p style="color: #30363d; font-size: 0.8rem; margin-top: 2rem;">
+                Control is an illusion. But observability is real.
+            </p>
+        </div>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>

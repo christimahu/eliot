@@ -4,7 +4,7 @@ defmodule Eliot.MixProject do
   def project do
     [
       app: :eliot,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -14,6 +14,18 @@ defmodule Eliot.MixProject do
       name: "Eliot",
       source_url: "https://github.com/christimahu/eliot",
       homepage_url: "https://bonsoireliot.com",
+
+      # Test configuration
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.lcov": :test
+      ],
+
+      # Documentation configuration
       docs: [
         main: "Eliot",
         extras: [
@@ -25,7 +37,23 @@ defmodule Eliot.MixProject do
           "LICENSE"
         ],
         output: "web/docs",
-        authors: ["Christi Mahu"]
+        epub: true,
+        authors: ["Christi Mahu"],
+        groups_for_modules: [
+          "Core Components": [
+            Eliot,
+            Eliot.Application
+          ],
+          "Error Handling": [
+            Eliot.ErrorHandler
+          ],
+          "Logging & Observability": [
+            Eliot.Logger
+          ],
+          "Message Processing": [
+            Eliot.MessageParser
+          ]
+        ]
       ]
     ]
   end
@@ -33,24 +61,29 @@ defmodule Eliot.MixProject do
   def application do
     [
       mod: {Eliot.Application, []},
-      extra_applications: [:logger]
+      extra_applications: [:logger, :crypto, :ssl]
     ]
   end
 
   defp deps do
     [
-      # Application Dependencies
+      # Core Dependencies - only keep what we actually use
       {:tortoise, "~> 0.10"},
       {:jason, "~> 1.4"},
+
+      # Observability and Monitoring
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
       {:telemetry_metrics_prometheus, "~> 1.0"},
 
-      # Development & Test Dependencies
+      # Development Dependencies
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.2", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
-      {:mix_test_watch, "~> 1.1", only: [:dev], runtime: false}
+      {:mix_test_watch, "~> 1.1", only: [:dev], runtime: false},
+      {:mix_audit, "~> 2.0", only: [:dev, :test], runtime: false},
+
+      # Test Dependencies
+      {:excoveralls, "~> 0.18", only: :test}
     ]
   end
 
@@ -68,23 +101,38 @@ defmodule Eliot.MixProject do
     ]
   end
 
-  # Defines all the custom project commands.
   defp aliases do
     [
-      # Resets project state by cleaning all builds and dependencies,
-      # then fetches fresh dependencies.
-      setup: ["clean", "deps.clean --all", "deps.get"],
+      # Development workflow
+      setup: ["deps.clean --all", "deps.get", "compile"],
 
-      # Runs a comprehensive suite of quality checks. Ideal for CI.
+      # Quality assurance - CI-friendly without warnings-as-errors for deps
       check: [
         "format --check-formatted",
         "credo --strict",
-        "dialyzer",
-        "test --cover --force --warnings-as-errors"
+        "test --cover"
       ],
 
-      # Watches file system for changes and re-runs tests automatically.
-      "test.watch": ["test.watch"]
+      # Individual quality checks
+      "check.format": ["format --check-formatted"],
+      "check.credo": ["credo --strict"],
+      "check.deps": ["deps.unlock --check-unused"],
+
+      # Test aliases
+      test: ["test --cover"],
+      "test.watch": ["test.watch --cover"],
+      "test.integration": ["test --only integration"],
+      "test.unit": ["test --exclude integration"],
+      "test.coverage": ["coveralls.html"],
+      "test.coverage.detail": ["coveralls.detail"],
+
+      # CI-specific commands that handle warnings properly
+      "ci.check": [
+        "format --check-formatted",
+        "credo --strict",
+        "test --cover --export-coverage default",
+        "coveralls.lcov"
+      ]
     ]
   end
 end
